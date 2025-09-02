@@ -15,7 +15,7 @@
     memory: "{{ es_container_memory }}"
     env:
       discovery.type: "single-node"
-      ELASTIC_PASSWORD: "{{ es_elastic_password if es_enable_security else omit }}"
+      ELASTIC_PASSWORD: "{{ es_password if es_enable_security else omit }}"
       xpack.security.enabled: "{{ 'true' if es_enable_security else 'false' }}"
       network.hosts: "{{ es_bind_host }}"
       ES_JAVA_OPTS: "{{ '-Xmg' + es_heap + ' -Xmx' + es_heap if es_heap else omit }}"
