@@ -1,15 +1,7 @@
-
-- name: reload systemd configuration
-  become: yes
-  systemd:
-    daemon_reload: true
-
-# Restart service and ensure it is enabled
-
-- name: restart elasticsearch
-  become: yes
-  service: name=elasticsearch state=restarted enabled=yes
-  when:
-    - es_restart_on_change
-    - es_start_service
-  register: es_restarted
+---
+- name: restart es_single
+  community.docker.docker_container:
+    name: "{{ es_container_name }}"
+    state: restarted
+  when: es_mode == 'single'
+  
