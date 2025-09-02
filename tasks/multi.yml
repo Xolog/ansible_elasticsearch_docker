@@ -1,0 +1,36 @@
+---
+- name: ElasticSearch | Ensure compose project dir
+  ansible.builtin.file:
+    path: "/opt/es-compose"
+    state: directory
+    mode: "0755"
+
+- name: ElasticSearch | Render .env for compose
+  ansible.builtin.template:
+    src: "env.j2"
+    dest: "/opt/es-compose/.env"
+    mode: "0640"
+
+- name: ElasticSearch | Render docker-compose.yml (without Kibana)
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "/opt/es-compose/docker-compose.yml"
+    mode: "0644"
+
+- name: ElasticSearch | Create data directories
+  ansible.builtin.file:
+    path: "/opt/es-compose/{{ item.name }}/data"
+    state: directory
+    mode: "0755"
+    recurse: true
+  loop: "{{ es_nodes }}"
+
+- name: ElasticSearch | docker compose up -d
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: /opt/es-compose
+
+- name: ElasticSearch | Check cluster health with CA and elastic creds
+  ansible.builtin.debug:
+    msg:
+      - "curl --cacert /opt/es-compose/certs/http_ca.crt -u elastic:$ELASTIC_PASSWORD https://localhost:{{ (es_nodes|first).http_port | default(9200) }}/_cluster/health"

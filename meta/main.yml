@@ -1,27 +1,33 @@
 ---
-
-allow_duplicates: yes
+allow_duplicates: true
 
 galaxy_info:
-  author: Robin Clarke, Jakob Reiter, Dale McDiarmid
-  description: Elasticsearch for Linux
-  company: "Elastic.co"
+  role_name: ansible_elasticsearch_docker
+  author: Robin Clarke, Jakob Reiter, Dale McDiarmid, Pavel Antsupov
+  description: Elasticsearch for Linux in Docker
+  company: "Order of Magnitude"
   license: "license (Apache)"
-  min_ansible_version: 2.5.0
+  min_ansible_version: 2.15.0
+
   platforms:
-  - name: EL
-    versions:
-    - 6
-    - 7
-  - name: Debian
-    versions:
-    - all
-  - name: Ubuntu
-    versions:
-    - all
-  - galaxy_tags:
-    - elastic
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+  galaxy_tags:
     - elasticsearch
+    - elastic
+    - docker
     - elk
     - logging
-dependencies: []
+dependencies:
+  - name: community.docker
+    version: ">=3.4.0"

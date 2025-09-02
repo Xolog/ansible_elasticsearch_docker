@@ -8,3 +8,4 @@ TODO
 .idea/
 elasticsearch.iml
 !/vars/RedHat.yml
+old_role (original and deprecated)
