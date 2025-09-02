@@ -74,7 +74,9 @@ Dependencies
 This role requires the community.docker Ansible collection.
 Install it with:
 
+```bash
 ansible-galaxy collection install community.docker
+```
 
 Example Playbooks
 
@@ -94,8 +96,9 @@ Single-node Elasticsearch
 
 Verify:
 
+```bash
 curl --cacert /var/lib/elasticsearch/http_ca.crt -u elastic:StrongAlphaNum123 https://localhost:9200
-
+```
 
 ⸻
 
@@ -117,8 +120,10 @@ Multi-node Elasticsearch cluster
 
 Verify cluster health:
 
+```bash
 curl --cacert /opt/es-compose/certs/http_ca.crt -u elastic:StrongAlphaNum123 https://localhost:9200/_cluster/health
 curl --cacert /opt/es-compose/certs/http_ca.crt -u elastic:StrongAlphaNum123 https://localhost:9200/_cat/nodes
+```
 
 License
 
@@ -129,4 +134,3 @@ Author Information
 Morgan Miller
 GitHub
 Rework by [Pavel Xolog](https://github.com/Xolog)
-⸻
