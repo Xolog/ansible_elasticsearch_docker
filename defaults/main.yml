@@ -12,7 +12,7 @@ es_bind_host: "0.0.0.0"
 es_with_kibana: false
 
 es_enable_security: true      # В 8+/9+ по умолчанию true. (https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/security-settings)
-es_elastic_password: ""       #(исп. ELASTIC_PASSWORD)
+es_password: ""       #(исп. ELASTIC_PASSWORD)
 
 # JVM
 es_container_memory: "2g"     # docker -m (https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-elasticsearch-docker-basic)
