@@ -1,0 +1,70 @@
+services:
+  setup:
+    image: "{{ es_image_repo }}{{ '-wolfi' if es_use_wolfi else '' }}:{{ es_version }}"
+    container_name: es-setup
+    command: >
+      bash -c '
+      if [ ! -f /usr/share/elasticsearch/config/certs/http_ca.crt ]; then
+        echo "==> Generating certs"; 
+        elasticsearch-certutil ca --silent --pem --out /usr/share/elasticsearch/config/certs/ca.zip &&
+        unzip /usr/share/elasticsearch/config/certs/ca.zip -d /usr/share/elasticsearch/config/certs &&
+        elasticsearch-certutil cert --silent --pem --ca-cert /usr/share/elasticsearch/config/certs/ca/ca.crt
+          --ca-key /usr/share/elasticsearch/config/certs/ca/ca.key
+          --out /usr/share/elasticsearch/config/certs/certs.zip --dns es01,es02,es03,localhost &&
+        unzip /usr/share/elasticsearch/config/certs/certs.zip -d /usr/share/elasticsearch/config/certs;
+      fi;
+      echo "==> Waiting for es01 to come up and set passwords if needed (ELASTIC_PASSWORD)"; exit 0'
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+    user: "0"
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /usr/share/elasticsearch/config/certs/http_ca.crt"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+{% for n in es_nodes %}
+  {{ n.name }}:
+    depends_on: { setup: { condition: service_healthy } }
+    image: "{{ es_image_repo }}{{ '-wolfi' if es_use_wolfi else '' }}:{{ es_version }}"
+    container_name: "{{ n.name }}"
+    environment:
+      - node.name={{ n.name }}
+      - cluster.name={{ es_cluster_name }}
+      - discovery.seed_hosts={% for m in es_nodes %}{{ m.name }}{% if not loop.last %},{% endif %}{% endfor %}
+      - cluster.initial_master_nodes={% for m in es_nodes %}{{ m.name }}{% if not loop.last %},{% endif %}{% endfor %}
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/{{ n.name }}/{{ n.name }}.key
+      - xpack.security.http.ssl.certificate=certs/{{ n.name }}/{{ n.name }}.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.key=certs/{{ n.name }}/{{ n.name }}.key
+      - xpack.security.transport.ssl.certificate=certs/{{ n.name }}/{{ n.name }}.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      {% if n.heap %}- ES_JAVA_OPTS=-Xms{{ n.heap }} -Xmx{{ n.heap }}{% endif %}
+      {% if n.roles %}- node.roles={{ n.roles | join(',') }}{% endif %}
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 262144, hard: 262144 }
+    volumes:
+      - certs:/usr/share/elasticsearch/config/certs
+      - {{ '/opt/es-compose/' + n.name + '/data' }}:/usr/share/elasticsearch/data
+    networks: [ elastic ]
+    restart: unless-stopped
+    {% if n.http_port is defined %}
+    ports:
+      - "${ES_PORT:-{{ n.http_port }}}:9200"
+    {% endif %}
+{% endfor %}
+
+volumes:
+  certs:
+    driver: local
+
+networks:
+  elastic:
+    name: "{{ es_network }}"
+    external: true

@@ -1,0 +1,8 @@
+---
+- name: ElasticSearch | Check es_mode var
+  assert:
+    that:
+      - es_mode in ['single', 'multi']
+  fail_msg: >
+    Invalid es_mode variable value: '{{ es_mode }}'.
+    Allowed 'single', 'multi'.
