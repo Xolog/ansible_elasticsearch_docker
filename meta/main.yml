@@ -28,6 +28,6 @@ galaxy_info:
     - docker
     - elk
     - logging
-dependencies:
-  - name: community.docker
-    version: ">=3.4.0"
+dependencies: []
+collections:
+  - community.docker
