@@ -1,0 +1,45 @@
+---
+- name: ElasticSearch | Create docker volume
+  docker_volume: 
+    name: "{{ es_single_vol_name }}"
+
+- name: ElasticSearch | Run ElasticSearch single node container
+  docker_container:
+    name: "{{ es_container_name }}"
+    image: "{{ es_image_repo }}{{ '-wolfi' if es_use_wolfi else '' }}:{{ es_version }}"
+    networks:
+      - name: "{{ es_network }}"
+    published_ports:
+      - "{{ es_http_port }}:9200"
+    restart_policy: unless-stopped
+    memory: "{{ es_container_memory }}"
+    env:
+      discovery.type: "single-node"
+      ELASTIC_PASSWORD: "{{ es_elastic_password if es_enable_security else omit }}"
+      xpack.security.enabled: "{{ 'true' if es_enable_security else 'false' }}"
+      network.hosts: "{{ es_bind_host }}"
+      ES_JAVA_OPTS: "{{ '-Xmg' + es_heap + ' -Xmx' + es_heap if es_heap else omit }}"
+      # любые доп. env
+      <<: "{{ es_single_extra_env }}"
+    volumes:
+      - "{{ es_single_vol_name }}:/usr/share/elasticsearch/data"
+    ulimits:
+      - nofile:262144:262144
+      - memlock:-1:-1
+    command: []
+  register: es_single_started
+  notify: restart es_single
+
+- name: ElasticSearch | Copy http_ca.cert from container
+  when: es_enable_security
+  command: >
+    docker cp {{ es_container_name }}:/usr/share/elasticsearch/config/certs/http_ca.crt {{ es_data_root }}/http_ca.crt
+  args:
+    creates: "{{ es_data_root }}/http_ca.cert"
+
+- name: ElasticSearch | Info for user
+  debug:
+    msg:
+      - "Elasticsearch URL: https://<host>:{{ es_http_port }}"
+      - "CACert: {{ es_data_root }}/http_ca.crt"
+      - "User: elastic"
