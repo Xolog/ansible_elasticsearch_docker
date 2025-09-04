@@ -1,7 +1,12 @@
 ---
-- name: ElasticSearch | Create docker volume
-  docker_volume: 
-    name: "{{ es_single_vol_name }}"
+- name: ElasticSearch | Ensure volume path
+  file:
+    state: directory
+    path: "{{ es_data_root }}"
+    mode: 0755
+    owner: 1000
+    group: 0      
+    recurse: true
 
 - name: Build env dict for single-node
   ansible.builtin.set_fact:
@@ -25,7 +30,7 @@
     name: "{{ es_container_name }}"
     image: "{{ es_image_repo }}{{ '-wolfi' if es_use_wolfi else '' }}:{{ es_version }}"
     state: started
-    restart_policy: always
+    restart_policy: unless-stopped
     networks:
       - name: "{{ es_network }}"
     published_ports:
@@ -33,7 +38,7 @@
     memory: "{{ es_container_memory }}"
     env: "{{ es_env }}"
     volumes:
-      - "{{ es_single_vol_name }}:/usr/share/elasticsearch/data"
+      - "{{ es_data_root }}:/usr/share/elasticsearch/data"
   register: es_single_started
   notify: restart es_single
 
@@ -42,7 +47,7 @@
   command: >
     docker cp {{ es_container_name }}:/usr/share/elasticsearch/config/certs/http_ca.crt {{ es_data_root }}/http_ca.crt
   args:
-    creates: "{{ es_data_root }}/http_ca.cert"
+    creates: "{{ es_data_root }}/http_ca.http_ca.crt"
 
 - name: ElasticSearch | Info for user
   debug:
