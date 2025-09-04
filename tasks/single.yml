@@ -3,30 +3,37 @@
   docker_volume: 
     name: "{{ es_single_vol_name }}"
 
-- name: ElasticSearch | Run ElasticSearch single node container
-  docker_container:
+- name: Build env dict for single-node
+  ansible.builtin.set_fact:
+    es_env: >-
+      {{
+        {
+          'discovery.type': 'single-node',
+          'xpack.security.enabled': (es_enable_security | ternary('true','false')),
+          'network.host': es_bind_host,
+          'ELASTIC_PASSWORD': (es_enable_security | ternary(es_password, omit)),
+          'ES_JAVA_OPTS': (
+            (es_heap is defined and es_heap|length > 0)
+            | ternary('-Xms' ~ es_heap ~ ' -Xmx' ~ es_heap, omit)
+          )
+        }
+        | combine(es_single_extra_env | default({}, true), recursive=True)
+      }}
+
+- name: ElasticSearch | Run single-node container
+  community.docker.docker_container:
     name: "{{ es_container_name }}"
     image: "{{ es_image_repo }}{{ '-wolfi' if es_use_wolfi else '' }}:{{ es_version }}"
+    state: started
+    restart_policy: always
     networks:
       - name: "{{ es_network }}"
     published_ports:
       - "{{ es_http_port }}:9200"
-    restart_policy: unless-stopped
     memory: "{{ es_container_memory }}"
-    env:
-      discovery.type: "single-node"
-      ELASTIC_PASSWORD: "{{ es_password if es_enable_security else omit }}"
-      xpack.security.enabled: "{{ 'true' if es_enable_security else 'false' }}"
-      network.hosts: "{{ es_bind_host }}"
-      ES_JAVA_OPTS: "{{ '-Xmg' + es_heap + ' -Xmx' + es_heap if es_heap else omit }}"
-      # любые доп. env
-      <<: "{{ es_single_extra_env }}"
+    env: "{{ es_env }}"
     volumes:
       - "{{ es_single_vol_name }}:/usr/share/elasticsearch/data"
-    ulimits:
-      - nofile:262144:262144
-      - memlock:-1:-1
-    command: []
   register: es_single_started
   notify: restart es_single
 

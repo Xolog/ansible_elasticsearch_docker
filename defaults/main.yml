@@ -1,6 +1,6 @@
 ---
 es_version: "9.1.3"
-es_image_repo: "docker.elastic.co/elasticsearch/elasticsearch"
+es_image_repo: "elasticsearch" # use 'docker.elastic.co/elasticsearch/elasticsearch' if not blocked
 es_use_wolfi: false           # при true будет elasticsearch-wolfi:{{ es_version }}. См. доки. (https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-elasticsearch-docker-basic)
 
 es_network: "elastic"
