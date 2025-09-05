@@ -1,0 +1,8 @@
+---
+- name: ElasticSearch | Log into private registry
+  docker_login:
+    registry: "{{ private_registry_address }}"
+    username: "{{ private_registry_user }}"
+    password: "{{ private_registry_password }}"
+    validate_certs: true
+  when: es_use_private_registry
