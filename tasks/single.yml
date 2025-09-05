@@ -8,19 +8,22 @@
     group: 0      
     recurse: true
 
+- name: ElasticSearch | Ensure vm.max_map_count
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: true
+  become: true
+
 - name: Build env dict for single-node
   ansible.builtin.set_fact:
     es_env: >-
       {{
         {
           'discovery.type': 'single-node',
-          'xpack.security.enabled': (es_enable_security | ternary('true','false')),
           'network.host': es_bind_host,
           'ELASTIC_PASSWORD': (es_enable_security | ternary(es_password, omit)),
-          'ES_JAVA_OPTS': (
-            (es_heap is defined and es_heap|length > 0)
-            | ternary('-Xms' ~ es_heap ~ ' -Xmx' ~ es_heap, omit)
-          )
         }
         | combine(es_single_extra_env | default({}, true), recursive=True)
       }}
@@ -33,9 +36,18 @@
     restart_policy: unless-stopped
     networks:
       - name: "{{ es_network }}"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --user ${ELASTIC_USER:-elastic}:${ELASTIC_PASSWORD:-secret} --silent --fail https://localhost:9200/_cluster/health -k || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     published_ports:
       - "{{ es_http_port }}:9200"
     memory: "{{ es_container_memory }}"
+    ulimits:
+      - "memlock:-1:-1"
+      - "nofile:262144:262144"
     env: "{{ es_env }}"
     volumes:
       - "{{ es_data_root }}:/usr/share/elasticsearch/data"
@@ -48,6 +60,11 @@
     docker cp {{ es_container_name }}:/usr/share/elasticsearch/config/certs/http_ca.crt {{ es_data_root }}/http_ca.crt
   args:
     creates: "{{ es_data_root }}/http_ca.http_ca.crt"
+
+- name: Log out of DockerHub
+  docker_login:
+    state: absent
+  when: es_use_private_registry
 
 - name: ElasticSearch | Info for user
   debug:

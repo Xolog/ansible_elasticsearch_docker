@@ -1,7 +1,11 @@
 ---
 es_version: "9.1.3"
-es_image_repo: "elasticsearch" # use 'docker.elastic.co/elasticsearch/elasticsearch' if not blocked
+es_image_repo: "elasticsearch"
 es_use_wolfi: false           # при true будет elasticsearch-wolfi:{{ es_version }}. См. доки. (https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-elasticsearch-docker-basic)
+es_use_private_registry: false
+private_registry_address: private.docker.registry
+private_registry_user: user
+private_registry_password: password
 
 es_network: "elastic"
 es_data_root: "/var/lib/elasticsearch"
