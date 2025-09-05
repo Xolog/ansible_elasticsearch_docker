@@ -9,7 +9,7 @@
     recurse: true
 
 - name: ElasticSearch | Ensure vm.max_map_count
-  ansible.posix.sysctl:
+  sysctl:
     name: vm.max_map_count
     value: "262144"
     state: present
@@ -17,13 +17,7 @@
   become: true
 
 - name: Build env dict for single-node
-  ansible.builtin.set_fact:
-        #  
-        #  'ES_JAVA_OPTS': (
-        #    (es_heap is defined and es_heap|length > 0)
-        #    | ternary('-Xms' ~ es_heap ~ ' -Xmx' ~ es_heap, omit)
-        #   
-        #  )
+  set_fact:
     es_env: >-
       {{
         {
@@ -35,7 +29,7 @@
       }}
 
 - name: ElasticSearch | Run single-node container
-  community.docker.docker_container:
+  docker_container:
     name: "{{ es_container_name }}"
     image: "{{ es_image_repo }}{{ '-wolfi' if es_use_wolfi else '' }}:{{ es_version }}"
     state: started
