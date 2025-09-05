@@ -1,7 +1,8 @@
 ---
 - name: restart es_single
-  community.docker.docker_container:
+  docker_container:
     name: "{{ es_container_name }}"
-    state: restarted
+    state: started
+    restart: true 
   when: es_mode == 'single'
   
