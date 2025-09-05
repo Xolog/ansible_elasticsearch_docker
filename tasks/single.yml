@@ -18,6 +18,12 @@
 
 - name: Build env dict for single-node
   ansible.builtin.set_fact:
+        #  
+        #  'ES_JAVA_OPTS': (
+        #    (es_heap is defined and es_heap|length > 0)
+        #    | ternary('-Xms' ~ es_heap ~ ' -Xmx' ~ es_heap, omit)
+        #   
+        #  )
     es_env: >-
       {{
         {
@@ -54,6 +60,10 @@
   register: es_single_started
   notify: restart es_single
 
+- name: ElasticSearch | Wait generate cert in Elastic container
+  wait_for:
+    timeout: 30
+
 - name: ElasticSearch | Copy http_ca.cert from container
   when: es_enable_security
   command: >
@@ -61,14 +71,14 @@
   args:
     creates: "{{ es_data_root }}/http_ca.http_ca.crt"
 
-- name: Log out of DockerHub
-  docker_login:
-    state: absent
-  when: es_use_private_registry
-
 - name: ElasticSearch | Info for user
   debug:
     msg:
       - "Elasticsearch URL: https://<host>:{{ es_http_port }}"
       - "CACert: {{ es_data_root }}/http_ca.crt"
       - "User: elastic"
+
+- name: Log out of DockerHub
+  docker_login:
+    state: absent
+  when: es_use_private_registry
