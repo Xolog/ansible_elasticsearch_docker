@@ -1,36 +1,45 @@
 ---
-- name: ElasticSearch | Ensure compose project dir
-  file:
-    path: "/opt/es-compose"
-    state: directory
-    mode: "0755"
-
-- name: ElasticSearch | Render .env for compose
-  template:
-    src: "env.j2"
-    dest: "/opt/es-compose/.env"
-    mode: "0640"
-
-- name: ElasticSearch | Render docker-compose.yml (without Kibana)
-  template:
-    src: "docker-compose.yml.j2"
-    dest: "/opt/es-compose/docker-compose.yml"
-    mode: "0644"
-
 - name: ElasticSearch | Create data directories
   file:
-    path: "/opt/es-compose/{{ item.name }}/data"
+    path: "{{ es_data_root }}/{{ item.name }}/data"
     state: directory
-    mode: "0755"
+    owner: 1000
+    group: 0
+    mode: "0775"
     recurse: true
   loop: "{{ es_nodes }}"
 
-- name: ElasticSearch | docker compose up -d
-  command: docker compose up -d
-  args:
-    chdir: /opt/es-compose
+- name: ElasticSearch | Ensure volume for certs
+  file:
+    state: directory
+    path: "{{ es_data_root }}/certs"
+    mode: 0755
+    owner: 1000
+    group: 0      
+    recurse: true
+
+- name: ElasticSearch | Ensure vm.max_map_count
+  sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: true
+  become: true
+
+- name: Render compose to string
+  set_fact:
+    rendered_compose: "{{ lookup('template', 'docker-compose.yml.j2') }}"
+
+- debug:
+    msg: "{{ rendered_compose }}"
+
+- name: ElasticSearch | Start docker compose elastic
+  community.docker.docker_compose_v2:
+    state: present
+    project_name: elastic
+    definition: "{{ lookup('template', 'docker-compose.yml.j2') | from_yaml }}"
 
 - name: ElasticSearch | Check cluster health with CA and elastic creds
   debug:
     msg:
-      - "curl --cacert /opt/es-compose/certs/http_ca.crt -u elastic:$ELASTIC_PASSWORD https://localhost:{{ (es_nodes|first).http_port | default(9200) }}/_cluster/health"
+      - "curl --cacert /opt/es/certs/http_ca.crt -u elastic:$ELASTIC_PASSWORD https://localhost:{{ (es_nodes|first).http_port | default(9200) }}/_cluster/health"
